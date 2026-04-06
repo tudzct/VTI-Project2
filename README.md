@@ -25,3 +25,17 @@ There are three main files:
 
 For each file, you need to put the paths to the training, evaluating, and testing datasets in your machine. 
 For ENHANCED.ipynb, you need to run other a VIT approach first, save the results in .csv file before feeding the results to the enhancement step.
+
+## Reproduction workflow in this repo
+
+To make the paper easier to study step by step, this repo now also contains a cleaner workflow:
+
+1. Prepare a reproducible dataset split:
+`python3 scripts/prepare_vti_dataset.py --max-rows 20000 --output-dir artifacts/data_sample`
+2. Run the classical baseline:
+`python3 scripts/run_base_experiment.py --train artifacts/data_sample/train.csv.gz --val artifacts/data_sample/val.csv.gz --test artifacts/data_sample/test.csv.gz --output-dir artifacts/base_sample`
+3. Read the teaching material:
+- `docs/IMPLEMENTATION_GUIDE.md`
+- `notebooks/00_vti_foundations.ipynb`
+- `notebooks/01_prepare_data.ipynb`
+- `notebooks/02_base_baseline.ipynb`
