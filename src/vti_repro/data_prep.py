@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict
@@ -45,6 +46,14 @@ def prepare_vti_dataset(
     max_rows: int | None = None,
     report_every: int = 5000,
 ) -> Dict:
+    max_csv_field_size = sys.maxsize
+    while True:
+        try:
+            csv.field_size_limit(max_csv_field_size)
+            break
+        except OverflowError:
+            max_csv_field_size //= 10
+
     output_dir = ensure_directory(output_dir)
     clean_path = output_dir / "vti_dataset.csv.gz"
     split_paths = {

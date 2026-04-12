@@ -1,0 +1,88 @@
+{
+  "kept_rows": 132720,
+  "label_by_split": {
+    "test": {
+      "bypass": 1022,
+      "dos": 8618,
+      "exec": 1788,
+      "info": 1418,
+      "mem": 754,
+      "other": 216,
+      "overflow": 3658,
+      "priv": 1006
+    },
+    "train": {
+      "bypass": 8428,
+      "dos": 68589,
+      "exec": 14164,
+      "info": 11099,
+      "mem": 6215,
+      "other": 1610,
+      "overflow": 28926,
+      "priv": 7888
+    },
+    "val": {
+      "bypass": 1030,
+      "dos": 8863,
+      "exec": 1779,
+      "info": 1415,
+      "mem": 760,
+      "other": 185,
+      "overflow": 3694,
+      "priv": 1003
+    }
+  },
+  "label_totals": {
+    "bypass": 10480,
+    "dos": 86070,
+    "exec": 17731,
+    "info": 13932,
+    "mem": 7729,
+    "other": 2011,
+    "overflow": 36278,
+    "priv": 9897
+  },
+  "outputs": {
+    "dataset": "artifacts/data_full/vti_dataset.csv.gz",
+    "test": "artifacts/data_full/test.csv.gz",
+    "train": "artifacts/data_full/train.csv.gz",
+    "val": "artifacts/data_full/val.csv.gz"
+  },
+  "processed_rows": 188636,
+  "raw_csv_path": "MSR_data_cleaned.csv",
+  "seed": 42,
+  "skipped_empty_text": 0,
+  "skipped_no_label": 55916,
+  "split_sizes": {
+    "test": 13298,
+    "train": 105953,
+    "val": 13469
+  },
+  "top_raw_classifications": {
+    "+Info": 11458,
+    "+Priv": 4786,
+    "Bypass": 9237,
+    "Bypass +Info": 538,
+    "Dir. Trav.": 692,
+    "DoS": 54827,
+    "DoS +Info": 1119,
+    "DoS +Priv": 2219,
+    "DoS +Priv Mem. Corr.": 407,
+    "DoS Exec Code": 2109,
+    "DoS Exec Code Mem. Corr.": 712,
+    "DoS Exec Code Overflow": 3221,
+    "DoS Exec Code Overflow Mem. Corr.": 1864,
+    "DoS Mem. Corr.": 738,
+    "DoS Overflow": 14667,
+    "DoS Overflow +Info": 290,
+    "DoS Overflow +Priv": 724,
+    "DoS Overflow Mem. Corr.": 2543,
+    "Exec Code": 5382,
+    "Exec Code Overflow": 3510,
+    "Exec Code Overflow Mem. Corr.": 498,
+    "Overflow": 6780,
+    "Overflow +Priv": 1123,
+    "Overflow Mem. Corr.": 405,
+    "XSS": 833
+  }
+}

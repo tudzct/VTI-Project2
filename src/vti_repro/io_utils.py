@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import gzip
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable
 
@@ -28,3 +29,12 @@ def open_csv_writer(path: Path, fieldnames: Iterable[str]) -> tuple[object, csv.
 
 def dump_json(data: Dict, path: str | Path) -> None:
     Path(path).write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def dump_progress(path: str | Path, stage: str, **extra) -> None:
+    payload = {
+        "stage": stage,
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        **extra,
+    }
+    dump_json(payload, path)

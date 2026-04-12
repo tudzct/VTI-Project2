@@ -1,0 +1,88 @@
+{
+  "kept_rows": 17341,
+  "label_by_split": {
+    "test": {
+      "bypass": 79,
+      "dos": 1161,
+      "exec": 571,
+      "info": 148,
+      "mem": 60,
+      "other": 10,
+      "overflow": 531,
+      "priv": 42
+    },
+    "train": {
+      "bypass": 619,
+      "dos": 9202,
+      "exec": 4429,
+      "info": 1276,
+      "mem": 597,
+      "other": 96,
+      "overflow": 4058,
+      "priv": 274
+    },
+    "val": {
+      "bypass": 74,
+      "dos": 1139,
+      "exec": 539,
+      "info": 156,
+      "mem": 60,
+      "other": 13,
+      "overflow": 523,
+      "priv": 30
+    }
+  },
+  "label_totals": {
+    "bypass": 772,
+    "dos": 11502,
+    "exec": 5539,
+    "info": 1580,
+    "mem": 717,
+    "other": 119,
+    "overflow": 5112,
+    "priv": 346
+  },
+  "outputs": {
+    "dataset": "artifacts/data_sample/vti_dataset.csv.gz",
+    "test": "artifacts/data_sample/test.csv.gz",
+    "train": "artifacts/data_sample/train.csv.gz",
+    "val": "artifacts/data_sample/val.csv.gz"
+  },
+  "processed_rows": 20001,
+  "raw_csv_path": "MSR_data_cleaned.csv",
+  "seed": 42,
+  "skipped_empty_text": 0,
+  "skipped_no_label": 2659,
+  "split_sizes": {
+    "test": 1761,
+    "train": 13896,
+    "val": 1684
+  },
+  "top_raw_classifications": {
+    "+Info": 1290,
+    "+Priv": 269,
+    "Bypass": 676,
+    "Bypass +Info": 18,
+    "Dir. Trav.": 115,
+    "DoS": 6692,
+    "DoS +Info": 146,
+    "DoS Bypass": 9,
+    "DoS Exec Code": 1022,
+    "DoS Exec Code Mem. Corr.": 200,
+    "DoS Exec Code Overflow": 1516,
+    "DoS Exec Code Overflow Mem. Corr.": 190,
+    "DoS Mem. Corr.": 65,
+    "DoS Overflow": 1342,
+    "DoS Overflow +Info": 70,
+    "DoS Overflow +Priv Mem. Corr.": 17,
+    "DoS Overflow Mem. Corr.": 226,
+    "Exec Code": 1616,
+    "Exec Code +Priv": 42,
+    "Exec Code Bypass": 58,
+    "Exec Code Overflow": 849,
+    "Exec Code Overflow +Info": 39,
+    "Overflow": 828,
+    "Overflow +Priv": 18,
+    "Overflow Mem. Corr. +Info": 12
+  }
+}
