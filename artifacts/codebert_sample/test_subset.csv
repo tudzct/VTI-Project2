@@ -1,0 +1,1684 @@
+sample_id,split,text,raw_classification,cve_id,cwe_id,project,commit_id,vul,info,priv,bypass,dos,exec,mem,overflow,other
+187,test,"int phar_copy_entry_fp(phar_entry_info *source, phar_entry_info *dest, char **error TSRMLS_DC) /* {{{ */
+{
+	phar_entry_info *link;
+
+	if (FAILURE == phar_open_entry_fp(source, error, 1 TSRMLS_CC)) {
+		return FAILURE;
+	}
+
+	if (dest->link) {
+		efree(dest->link);
+		dest->link = NULL;
+		dest->tar_type = (dest->is_tar ? TAR_FILE : '\0');
+	}
+
+	dest->fp_type = PHAR_MOD;
+	dest->offset = 0;
+	dest->is_modified = 1;
+	dest->fp = php_stream_fopen_tmpfile();
+	if (dest->fp == NULL) {
+		spprintf(error, 0, ""phar error: unable to create temporary file"");
+		return EOF;
+	}
+	phar_seek_efp(source, 0, SEEK_SET, 0, 1 TSRMLS_CC);
+	link = phar_get_link_source(source TSRMLS_CC);
+
+	if (!link) {
+		link = source;
+	}
+
+	if (SUCCESS != phar_stream_copy_to_stream(phar_get_efp(link, 0 TSRMLS_CC), dest->fp, link->uncompressed_filesize, NULL)) {
+		php_stream_close(dest->fp);
+		dest->fp_type = PHAR_FP;
+		if (error) {
+			spprintf(error, 4096, ""phar error: unable to copy contents of file \""%s\"" to \""%s\"" in phar archive \""%s\"""", source->filename, dest->filename, source->phar->fname);
+		}
+		return FAILURE;
+	}
+
+	return SUCCESS;
+}
+/* }}} */",DoS,CVE-2015-7804,CWE-189,php,1ddf72180a52d247db88ea42a3e35f824a8fbda2,0,0,0,0,1,0,0,0,0
+237,test,"bgp_attr_as4_aggregator (struct bgp_attr_parser_args *args,
+		         as_t *as4_aggregator_as,
+		         struct in_addr *as4_aggregator_addr)
+{
+  struct peer *const peer = args->peer; 
+  struct attr *const attr = args->attr;
+  const bgp_size_t length = args->length;
+      
+  if (length != 8)
+    {
+      zlog (peer->log, LOG_ERR, ""New Aggregator length is not 8 [%d]"",
+            length);
+      return bgp_attr_malformed (args,
+                                 BGP_NOTIFY_UPDATE_ATTR_LENG_ERR,
+                                 0);
+    }
+  
+  *as4_aggregator_as = stream_getl (peer->ibuf);
+  as4_aggregator_addr->s_addr = stream_get_ipv4 (peer->ibuf);
+
+  attr->flag |= ATTR_FLAG_BIT (BGP_ATTR_AS4_AGGREGATOR);
+
+  return BGP_ATTR_PARSE_PROCEED;
+}",DoS,CVE-2013-6051,,savannah,8794e8d229dc9fe29ea31424883433d4880ef408,0,0,0,0,1,0,0,0,0
+664,test,"sparse_extract_file (int fd, struct tar_stat_info *st, off_t *size)
+{
+  bool rc = true;
+  struct tar_sparse_file file;
+  size_t i;
+
+  if (!tar_sparse_init (&file))
+    return dump_status_not_implemented;
+
+  file.stat_info = st;
+  file.fd = fd;
+  file.seekable = lseek (fd, 0, SEEK_SET) == 0;
+  file.offset = 0;
+
+  rc = tar_sparse_decode_header (&file);
+  for (i = 0; rc && i < file.stat_info->sparse_map_avail; i++)
+    rc = tar_sparse_extract_region (&file, i);
+  *size = file.stat_info->archive_file_size - file.dumped_size;
+  return (tar_sparse_done (&file) && rc) ? dump_status_ok : dump_status_short;
+}",DoS,CVE-2018-20482,CWE-835,savannah,c15c42ccd1e2377945fd0414eca1a49294bff454,0,0,0,0,1,0,0,0,0
+699,test,"lt_dlexit ()
+{
+  /* shut down libltdl */
+  lt_dlloader *loader;
+  int	       errors   = 0;
+
+  LT_DLMUTEX_LOCK ();
+  loader = loaders;
+
+  if (!initialized)
+    {
+      LT_DLMUTEX_SETERROR (LT_DLSTRERROR (SHUTDOWN));
+      ++errors;
+      goto done;
+    }
+
+  /* shut down only at last call. */
+  if (--initialized == 0)
+    {
+      int	level;
+
+      while (handles && LT_DLIS_RESIDENT (handles))
+	{
+	  handles = handles->next;
+	}
+
+      /* close all modules */
+      for (level = 1; handles; ++level)
+	{
+	  lt_dlhandle cur = handles;
+	  int saw_nonresident = 0;
+
+	  while (cur)
+	    {
+	      lt_dlhandle tmp = cur;
+	      cur = cur->next;
+	      if (!LT_DLIS_RESIDENT (tmp))
+		saw_nonresident = 1;
+	      if (!LT_DLIS_RESIDENT (tmp) && tmp->info.ref_count <= level)
+		{
+		  if (lt_dlclose (tmp))
+		    {
+		      ++errors;
+		    }
+		  /* Make sure that the handle pointed to by 'cur' still exists.
+		     lt_dlclose recursively closes dependent libraries which removes
+		     them from the linked list.  One of these might be the one
+		     pointed to by 'cur'.  */
+		  if (cur)
+		    {
+		      for (tmp = handles; tmp; tmp = tmp->next)
+			if (tmp == cur)
+			  break;
+		      if (! tmp)
+			cur = handles;
+		    }
+		}
+	    }
+	  /* done if only resident modules are left */
+	  if (!saw_nonresident)
+	    break;
+	}
+
+      /* close all loaders */
+      while (loader)
+	{
+	  lt_dlloader *next = loader->next;
+	  lt_user_data data = loader->dlloader_data;
+	  if (loader->dlloader_exit && loader->dlloader_exit (data))
+	    {
+	      ++errors;
+	    }
+
+	  LT_DLMEM_REASSIGN (loader, next);
+	}
+      loaders = 0;
+    }
+
+ done:
+  LT_DLMUTEX_UNLOCK ();
+  return errors;
+}",+Priv,CVE-2009-3736,,savannah,29b48580df75f0c5baa2962548a4c101ec7ed7ec,0,0,1,0,0,0,0,0,0
+1092,test,"GfxColorSpace *GfxCalRGBColorSpace::parse(Array *arr) {
+  GfxCalRGBColorSpace *cs;
+  Object obj1, obj2, obj3;
+  int i;
+
+  arr->get(1, &obj1);
+  if (!obj1.isDict()) {
+    error(-1, ""Bad CalRGB color space"");
+    obj1.free();
+    return NULL;
+  }
+  cs = new GfxCalRGBColorSpace();
+  if (obj1.dictLookup(""WhitePoint"", &obj2)->isArray() &&
+      obj2.arrayGetLength() == 3) {
+    obj2.arrayGet(0, &obj3);
+    cs->whiteX = obj3.getNum();
+    obj3.free();
+    obj2.arrayGet(1, &obj3);
+    cs->whiteY = obj3.getNum();
+    obj3.free();
+    obj2.arrayGet(2, &obj3);
+    cs->whiteZ = obj3.getNum();
+    obj3.free();
+  }
+  obj2.free();
+  if (obj1.dictLookup(""BlackPoint"", &obj2)->isArray() &&
+      obj2.arrayGetLength() == 3) {
+    obj2.arrayGet(0, &obj3);
+    cs->blackX = obj3.getNum();
+    obj3.free();
+    obj2.arrayGet(1, &obj3);
+    cs->blackY = obj3.getNum();
+    obj3.free();
+    obj2.arrayGet(2, &obj3);
+    cs->blackZ = obj3.getNum();
+    obj3.free();
+  }
+  obj2.free();
+  if (obj1.dictLookup(""Gamma"", &obj2)->isArray() &&
+      obj2.arrayGetLength() == 3) {
+    obj2.arrayGet(0, &obj3);
+    cs->gammaR = obj3.getNum();
+    obj3.free();
+    obj2.arrayGet(1, &obj3);
+    cs->gammaG = obj3.getNum();
+    obj3.free();
+    obj2.arrayGet(2, &obj3);
+    cs->gammaB = obj3.getNum();
+    obj3.free();
+  }
+  obj2.free();
+  if (obj1.dictLookup(""Matrix"", &obj2)->isArray() &&
+      obj2.arrayGetLength() == 9) {
+    for (i = 0; i < 9; ++i) {
+      obj2.arrayGet(i, &obj3);
+      cs->mat[i] = obj3.getNum();
+      obj3.free();
+    }
+  }
+  obj2.free();
+  obj1.free();
+
+  cs->kr = 1 / (xyzrgb[0][0] * cs->whiteX +
+		xyzrgb[0][1] * cs->whiteY +
+		xyzrgb[0][2] * cs->whiteZ);
+  cs->kg = 1 / (xyzrgb[1][0] * cs->whiteX +
+		xyzrgb[1][1] * cs->whiteY +
+		xyzrgb[1][2] * cs->whiteZ);
+  cs->kb = 1 / (xyzrgb[2][0] * cs->whiteX +
+		xyzrgb[2][1] * cs->whiteY +
+		xyzrgb[2][2] * cs->whiteZ);
+
+  return cs;
+}",DoS Exec Code Overflow,CVE-2009-3605,CWE-189,poppler,7b2d314a61fd0e12f47c62996cb49ec0d1ba747a,0,0,0,0,1,1,0,1,0
+1145,test,"GfxRadialShading::~GfxRadialShading() {
+  int i;
+
+  for (i = 0; i < nFuncs; ++i) {
+    delete funcs[i];
+  }
+}",DoS Exec Code Overflow,CVE-2009-3605,CWE-189,poppler,7b2d314a61fd0e12f47c62996cb49ec0d1ba747a,0,0,0,0,1,1,0,1,0
+1973,test,"SPICE_GNUC_VISIBLE int spice_server_set_agent_copypaste(SpiceServer *s, int enable)
+{
+    spice_assert(reds == s);
+    agent_copypaste = enable;
+    reds->agent_state.write_filter.copy_paste_enabled = agent_copypaste;
+    reds->agent_state.read_filter.copy_paste_enabled = agent_copypaste;
+    return 0;
+}",DoS Overflow,CVE-2013-4282,CWE-119,spice,8af619009660b24e0b41ad26b30289eea288fcc2,0,0,0,0,1,0,0,1,0
+2110,test,"void red_channel_client_pipe_add(RedChannelClient *rcc, PipeItem *item)
+{
+    spice_assert(rcc && item);
+    rcc->pipe_size++;
+    ring_add(&rcc->pipe, &item->link);
+}",DoS,CVE-2013-4130,CWE-399,spice,53488f0275d6c8a121af49f7ac817d09ce68090d,0,0,0,0,1,0,0,0,0
+2125,test,"void red_channel_client_push_set_ack(RedChannelClient *rcc)
+{
+    red_channel_client_pipe_add_type(rcc, PIPE_ITEM_TYPE_SET_ACK);
+}",DoS,CVE-2013-4130,CWE-399,spice,53488f0275d6c8a121af49f7ac817d09ce68090d,0,0,0,0,1,0,0,0,0
+2184,test,"static void red_channel_unref(RedChannel *channel)
+{
+    if (!--channel->refs) {
+        if (channel->local_caps.num_common_caps) {
+            free(channel->local_caps.common_caps);
+        }
+
+        if (channel->local_caps.num_caps) {
+            free(channel->local_caps.caps);
+        }
+
+        free(channel);
+    }
+}",DoS,CVE-2013-4130,CWE-399,spice,53488f0275d6c8a121af49f7ac817d09ce68090d,0,0,0,0,1,0,0,0,0
+2578,test,"elements_worker(FunctionCallInfo fcinfo, const char *funcname, bool as_text)
+{
+	text	   *json = PG_GETARG_TEXT_P(0);
+
+	/* elements only needs escaped strings when as_text */
+	JsonLexContext *lex = makeJsonLexContext(json, as_text);
+	JsonSemAction *sem;
+	ReturnSetInfo *rsi;
+	MemoryContext old_cxt;
+	TupleDesc	tupdesc;
+	ElementsState *state;
+
+	state = palloc0(sizeof(ElementsState));
+	sem = palloc0(sizeof(JsonSemAction));
+
+	rsi = (ReturnSetInfo *) fcinfo->resultinfo;
+
+	if (!rsi || !IsA(rsi, ReturnSetInfo) ||
+		(rsi->allowedModes & SFRM_Materialize) == 0 ||
+		rsi->expectedDesc == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg(""set-valued function called in context that ""
+						""cannot accept a set"")));
+
+	rsi->returnMode = SFRM_Materialize;
+
+	/* it's a simple type, so don't use get_call_result_type() */
+	tupdesc = rsi->expectedDesc;
+
+	/* make these in a sufficiently long-lived memory context */
+	old_cxt = MemoryContextSwitchTo(rsi->econtext->ecxt_per_query_memory);
+
+	state->ret_tdesc = CreateTupleDescCopy(tupdesc);
+	BlessTupleDesc(state->ret_tdesc);
+	state->tuple_store =
+		tuplestore_begin_heap(rsi->allowedModes & SFRM_Materialize_Random,
+							  false, work_mem);
+
+	MemoryContextSwitchTo(old_cxt);
+
+	sem->semstate = (void *) state;
+	sem->object_start = elements_object_start;
+	sem->scalar = elements_scalar;
+	sem->array_element_start = elements_array_element_start;
+	sem->array_element_end = elements_array_element_end;
+
+	state->function_name = funcname;
+	state->normalize_results = as_text;
+	state->next_scalar = false;
+	state->lex = lex;
+	state->tmp_cxt = AllocSetContextCreate(CurrentMemoryContext,
+										 ""json_array_elements temporary cxt"",
+										   ALLOCSET_DEFAULT_MINSIZE,
+										   ALLOCSET_DEFAULT_INITSIZE,
+										   ALLOCSET_DEFAULT_MAXSIZE);
+
+	pg_parse_json(lex, sem);
+
+	MemoryContextDelete(state->tmp_cxt);
+
+	rsi->setResult = state->tuple_store;
+	rsi->setDesc = state->ret_tdesc;
+
+	PG_RETURN_NULL();
+}",DoS Overflow,CVE-2015-5289,CWE-119,postgresql,08fa47c4850cea32c3116665975bca219fbf2fe6,0,0,0,0,1,0,0,1,0
+3383,test,"static void php_apache_sapi_log_message(char *msg TSRMLS_DC)
+{
+	php_struct *ctx;
+
+	ctx = SG(server_context);
+
+	if (ctx == NULL) { /* we haven't initialized our ctx yet, oh well */
+		ap_log_error(APLOG_MARK, APLOG_ERR | APLOG_STARTUP, 0, NULL, ""%s"", msg);
+	} else {
+		ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, ctx->r, ""%s"", msg);
+	}
+}",DoS Exec Code,CVE-2015-3330,CWE-20,php,809610f5ea38a83b284e1125d1fff129bdd615e7,0,0,0,0,1,1,0,0,0
+3794,test,"_dbus_get_is_errno_eagain_or_ewouldblock (void)
+{
+  return errno == WSAEWOULDBLOCK;
+}",DoS,CVE-2013-2168,CWE-20,dbus,954d75b2b64e4799f360d2a6bf9cff6d9fee37e7,0,0,0,0,1,0,0,0,0
+4162,test,PSStack() {sp = psStackSize; },DoS Exec Code Overflow,CVE-2013-1788,CWE-119,poppler,e14b6e9c13d35c9bd1e0c50906ace8e707816888,0,0,0,0,1,1,0,1,0
+4344,test,"_zip_read2(unsigned char **a)
+{
+    unsigned short ret;
+
+    ret = (*a)[0]+((*a)[1]<<8);
+    *a += 2;
+
+    return ret;
+}",DoS Exec Code Overflow,CVE-2015-2331,CWE-189,php,ef8fc4b53d92fbfcd8ef1abbd6f2f5fe2c4a11e5,0,0,0,0,1,1,0,1,0
+4361,test,"PHP_METHOD(Phar, canWrite)
+{
+	if (zend_parse_parameters_none() == FAILURE) {
+		return;
+	}
+	RETURN_BOOL(!PHAR_G(readonly));
+}",DoS,CVE-2015-2301,,php,b2cf3f064b8f5efef89bb084521b61318c71781b,0,0,0,0,1,0,0,0,0
+4424,test,"static int phar_copy_file_contents(phar_entry_info *entry, php_stream *fp TSRMLS_DC) /* {{{ */
+{
+	char *error;
+	off_t offset;
+	phar_entry_info *link;
+
+	if (FAILURE == phar_open_entry_fp(entry, &error, 1 TSRMLS_CC)) {
+		if (error) {
+			zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0 TSRMLS_CC,
+				""Cannot convert phar archive \""%s\"", unable to open entry \""%s\"" contents: %s"", entry->phar->fname, entry->filename, error);
+			efree(error);
+		} else {
+			zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0 TSRMLS_CC,
+				""Cannot convert phar archive \""%s\"", unable to open entry \""%s\"" contents"", entry->phar->fname, entry->filename);
+		}
+		return FAILURE;
+	}
+
+	/* copy old contents in entirety */
+	phar_seek_efp(entry, 0, SEEK_SET, 0, 1 TSRMLS_CC);
+	offset = php_stream_tell(fp);
+	link = phar_get_link_source(entry TSRMLS_CC);
+
+	if (!link) {
+		link = entry;
+	}
+
+	if (SUCCESS != phar_stream_copy_to_stream(phar_get_efp(link, 0 TSRMLS_CC), fp, link->uncompressed_filesize, NULL)) {
+		zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0 TSRMLS_CC,
+			""Cannot convert phar archive \""%s\"", unable to copy entry \""%s\"" contents"", entry->phar->fname, entry->filename);
+		return FAILURE;
+	}
+
+	if (entry->fp_type == PHAR_MOD) {
+		/* save for potential restore on error */
+		entry->cfp = entry->fp;
+		entry->fp = NULL;
+	}
+
+	/* set new location of file contents */
+	entry->fp_type = PHAR_FP;
+	entry->offset = offset;
+	return SUCCESS;
+}
+/* }}} */",DoS,CVE-2015-2301,,php,b2cf3f064b8f5efef89bb084521b61318c71781b,0,0,0,0,1,0,0,0,0
+5267,test,"bmexec (kwset_t kwset, char const *text, size_t size)
+{
+  /* Help the compiler inline bmexec_trans in two ways, depending on
+     whether kwset->trans is null.  */
+  return (kwset->trans
+          ? bmexec_trans (kwset, text, size)
+          : bmexec_trans (kwset, text, size));
+}",DoS Overflow,CVE-2015-1345,CWE-119,savannah,83a95bd8c8561875b948cadd417c653dbe7ef2e2,0,0,0,0,1,0,0,1,0
+5277,test,"treedelta (struct tree const *tree,
+           unsigned int depth,
+           unsigned char delta[])
+{
+  if (!tree)
+    return;
+  treedelta(tree->llink, depth, delta);
+  treedelta(tree->rlink, depth, delta);
+  if (depth < delta[tree->label])
+    delta[tree->label] = depth;
+}",DoS Overflow,CVE-2015-1345,CWE-119,savannah,83a95bd8c8561875b948cadd417c653dbe7ef2e2,0,0,0,0,1,0,0,1,0
+5451,test,"static void  Ins_SHP( INS_ARG )
+  {
+    TGlyph_Zone zp;
+    Int         refp;
+
+    TT_F26Dot6  dx,
+                dy;
+    Long        point;
+    (void)args;
+
+    if ( CUR.top < CUR.GS.loop )
+    {
+      CUR.error = TT_Err_Invalid_Reference;
+      return;
+    }
+
+    if ( COMPUTE_Point_Displacement( &dx, &dy, &zp, &refp ) )
+      return;
+
+    while ( CUR.GS.loop > 0 )
+    {
+      CUR.args--;
+      point = CUR.stack[CUR.args];
+
+      if ( BOUNDS( point, CUR.zp2.n_points ) )
+      {
+        CUR.error = TT_Err_Invalid_Reference;
+        return;
+      }
+
+      /* undocumented: SHP touches the points */
+      MOVE_Zp2_Point( point, dx, dy, TRUE );
+
+      CUR.GS.loop--;
+    }
+
+    CUR.GS.loop = 1;
+    CUR.new_top = CUR.args;
+  }",DoS,CVE-2017-9739,CWE-125,ghostscript,c501a58f8d5650c8ba21d447c0d6f07eafcb0f15,0,0,0,0,1,0,0,0,0
+5727,test,"static USBPort *xhci_lookup_uport(XHCIState *xhci, uint32_t *slot_ctx)
+{
+    USBPort *uport;
+    char path[32];
+    int i, pos, port;
+
+    port = (slot_ctx[1]>>16) & 0xFF;
+    if (port < 1 || port > xhci->numports) {
+        return NULL;
+    }
+    port = xhci->ports[port-1].uport->index+1;
+    pos = snprintf(path, sizeof(path), ""%d"", port);
+    for (i = 0; i < 5; i++) {
+        port = (slot_ctx[0] >> 4*i) & 0x0f;
+        if (!port) {
+            break;
+        }
+        pos += snprintf(path + pos, sizeof(path) - pos, "".%d"", port);
+    }
+
+    QTAILQ_FOREACH(uport, &xhci->bus.used, next) {
+        if (strcmp(uport->path, path) == 0) {
+            return uport;
+        }
+    }
+    return NULL;
+}",DoS,CVE-2017-9375,CWE-835,qemu,96d87bdda3919bb16f754b3d3fd1227e1f38f13c,0,0,0,0,1,0,0,0,0
+5919,test,"static void ohci_mem_write(void *opaque,
+                           hwaddr addr,
+                           uint64_t val,
+                           unsigned size)
+{
+    OHCIState *ohci = opaque;
+
+    /* Only aligned reads are allowed on OHCI */
+    if (addr & 3) {
+        trace_usb_ohci_mem_write_unaligned(addr);
+        return;
+    }
+
+    if (addr >= 0x54 && addr < 0x54 + ohci->num_ports * 4) {
+        /* HcRhPortStatus */
+        ohci_port_set_status(ohci, (addr - 0x54) >> 2, val);
+        return;
+    }
+
+    switch (addr >> 2) {
+    case 1: /* HcControl */
+        ohci_set_ctl(ohci, val);
+        break;
+
+    case 2: /* HcCommandStatus */
+        /* SOC is read-only */
+        val = (val & ~OHCI_STATUS_SOC);
+
+        /* Bits written as '0' remain unchanged in the register */
+        ohci->status |= val;
+
+        if (ohci->status & OHCI_STATUS_HCR)
+            ohci_soft_reset(ohci);
+        break;
+
+    case 3: /* HcInterruptStatus */
+        ohci->intr_status &= ~val;
+        ohci_intr_update(ohci);
+        break;
+
+    case 4: /* HcInterruptEnable */
+        ohci->intr |= val;
+        ohci_intr_update(ohci);
+        break;
+
+    case 5: /* HcInterruptDisable */
+        ohci->intr &= ~val;
+        ohci_intr_update(ohci);
+        break;
+
+    case 6: /* HcHCCA */
+        ohci->hcca = val & OHCI_HCCA_MASK;
+        break;
+
+    case 7: /* HcPeriodCurrentED */
+        /* Ignore writes to this read-only register, Linux does them */
+        break;
+
+    case 8: /* HcControlHeadED */
+        ohci->ctrl_head = val & OHCI_EDPTR_MASK;
+        break;
+
+    case 9: /* HcControlCurrentED */
+        ohci->ctrl_cur = val & OHCI_EDPTR_MASK;
+        break;
+
+    case 10: /* HcBulkHeadED */
+        ohci->bulk_head = val & OHCI_EDPTR_MASK;
+        break;
+
+    case 11: /* HcBulkCurrentED */
+        ohci->bulk_cur = val & OHCI_EDPTR_MASK;
+        break;
+
+    case 13: /* HcFmInterval */
+        ohci->fsmps = (val & OHCI_FMI_FSMPS) >> 16;
+        ohci->fit = (val & OHCI_FMI_FIT) >> 31;
+        ohci_set_frame_interval(ohci, val);
+        break;
+
+    case 15: /* HcFmNumber */
+        break;
+
+    case 16: /* HcPeriodicStart */
+        ohci->pstart = val & 0xffff;
+        break;
+
+    case 17: /* HcLSThreshold */
+        ohci->lst = val & 0xffff;
+        break;
+
+    case 18: /* HcRhDescriptorA */
+        ohci->rhdesc_a &= ~OHCI_RHA_RW_MASK;
+        ohci->rhdesc_a |= val & OHCI_RHA_RW_MASK;
+        break;
+
+    case 19: /* HcRhDescriptorB */
+        break;
+
+    case 20: /* HcRhStatus */
+        ohci_set_hub_status(ohci, val);
+        break;
+
+    /* PXA27x specific registers */
+    case 24: /* HcStatus */
+        ohci->hstatus &= ~(val & ohci->hmask);
+        break;
+
+    case 25: /* HcHReset */
+        ohci->hreset = val & ~OHCI_HRESET_FSBIR;
+        if (val & OHCI_HRESET_FSBIR)
+            ohci_hard_reset(ohci);
+        break;
+
+    case 26: /* HcHInterruptEnable */
+        ohci->hmask = val;
+        break;
+
+    case 27: /* HcHInterruptTest */
+        ohci->htest = val;
+        break;
+
+    default:
+        trace_usb_ohci_mem_write_bad_offset(addr);
+        break;
+    }
+}",DoS,CVE-2017-9330,CWE-835,qemu,26f670a244982335cc08943fb1ec099a2c81e42d,0,0,0,0,1,0,0,0,0
+6029,test,"e1000e_receive(E1000ECore *core, const uint8_t *buf, size_t size)
+{
+    const struct iovec iov = {
+        .iov_base = (uint8_t *)buf,
+        .iov_len = size
+    };
+
+    return e1000e_receive_iov(core, &iov, 1);
+}",DoS,CVE-2017-9310,CWE-835,qemu,4154c7e03fa55b4cf52509a83d50d6c09d743b77,0,0,0,0,1,0,0,0,0
+6589,test,"void Smb4KMountJob::setupMount( const QList<Smb4KShare*> &shares, QWidget *parent )
+{
+  QListIterator<Smb4KShare *> it( shares );
+
+  while ( it.hasNext() )
+  {
+    Smb4KShare *share = it.next();
+    Q_ASSERT( share );
+    m_shares << new Smb4KShare( *share );
+  }
+
+  m_parent_widget = parent;
+}",+Priv,CVE-2017-8849,CWE-20,kde,71554140bdaede27b95dbe4c9b5a028a83c83cce,0,0,1,0,0,0,0,0,0
+7215,test,"bool AuthBackend::actionExists(const QString& action)
+ {
+     Q_UNUSED(action);
+    Q_UNUSED(action)
+    Q_UNUSED(parent)
+}",+Priv,CVE-2017-8422,CWE-290,kde,264e97625abe2e0334f97de17f6ffb52582888ab,0,0,1,0,0,0,0,0,0
+7300,test,"hook_hdata_get (struct t_weechat_plugin *plugin, const char *hdata_name)
+{
+    struct t_hook *ptr_hook, *next_hook;
+    struct t_hdata *value;
+
+    /* make C compiler happy */
+    (void) plugin;
+
+    if (!hdata_name || !hdata_name[0])
+        return NULL;
+
+    if (weechat_hdata)
+    {
+        value = hashtable_get (weechat_hdata, hdata_name);
+        if (value)
+            return value;
+    }
+
+    hook_exec_start ();
+
+    ptr_hook = weechat_hooks[HOOK_TYPE_HDATA];
+    while (ptr_hook)
+    {
+        next_hook = ptr_hook->next_hook;
+
+        if (!ptr_hook->deleted
+            && !ptr_hook->running
+            && (strcmp (HOOK_HDATA(ptr_hook, hdata_name), hdata_name) == 0))
+        {
+            ptr_hook->running = 1;
+            value = (HOOK_HDATA(ptr_hook, callback))
+                (ptr_hook->callback_data,
+                 HOOK_HDATA(ptr_hook, hdata_name));
+            ptr_hook->running = 0;
+
+            hook_exec_end ();
+            return value;
+        }
+
+        ptr_hook = next_hook;
+    }
+
+    hook_exec_end ();
+
+    /* hdata not found */
+    return NULL;
+}",Exec Code,CVE-2012-5534,CWE-20,savannah,efb795c74fe954b9544074aafcebb1be4452b03a,0,0,0,0,0,1,0,0,0
+7359,test,"ps_tostring( FT_Byte**  cursor,
+               FT_Byte*   limit,
+               FT_Memory  memory )
+  {
+    FT_Byte*    cur = *cursor;
+    FT_UInt     len = 0;
+    FT_Int      count;
+    FT_String*  result;
+    FT_Error    error;
+
+
+    /* XXX: some stupid fonts have a `Notice' or `Copyright' string     */
+    /*      that simply doesn't begin with an opening parenthesis, even */
+    /*      though they have a closing one!  E.g. ""amuncial.pfb""        */
+    /*                                                                  */
+    /*      We must deal with these ill-fated cases there.  Note that   */
+    /*      these fonts didn't work with the old Type 1 driver as the   */
+    /*      notice/copyright was not recognized as a valid string token */
+    /*      and made the old token parser commit errors.                */
+
+    while ( cur < limit && ( *cur == ' ' || *cur == '\t' ) )
+      cur++;
+    if ( cur + 1 >= limit )
+      return 0;
+
+    if ( *cur == '(' )
+      cur++;  /* skip the opening parenthesis, if there is one */
+
+    *cursor = cur;
+    count   = 0;
+
+    /* then, count its length */
+    for ( ; cur < limit; cur++ )
+    {
+      if ( *cur == '(' )
+        count++;
+
+      else if ( *cur == ')' )
+      {
+        count--;
+        if ( count < 0 )
+          break;
+      }
+    }
+
+    len = (FT_UInt)( cur - *cursor );
+    if ( cur >= limit || FT_ALLOC( result, len + 1 ) )
+      return 0;
+
+    /* now copy the string */
+    FT_MEM_COPY( result, *cursor, len );
+    result[len] = '\0';
+    *cursor = cur;
+    return result;
+  }",Overflow,CVE-2017-8287,CWE-119,savannah,3774fc08b502c3e685afca098b6e8a195aded6a0,0,0,0,0,0,0,0,1,0
+7630,test,"static int proxy_init(FsContext *ctx)
+{
+    V9fsProxy *proxy = g_malloc(sizeof(V9fsProxy));
+    int sock_id;
+
+    if (ctx->export_flags & V9FS_PROXY_SOCK_NAME) {
+        sock_id = connect_namedsocket(ctx->fs_root);
+    } else {
+        sock_id = atoi(ctx->fs_root);
+        if (sock_id < 0) {
+            error_report(""Socket descriptor not initialized"");
+        }
+    }
+    if (sock_id < 0) {
+        g_free(proxy);
+        return -1;
+    }
+    g_free(ctx->fs_root);
+    ctx->fs_root = NULL;
+
+    proxy->in_iovec.iov_base  = g_malloc(PROXY_MAX_IO_SZ + PROXY_HDR_SZ);
+    proxy->in_iovec.iov_len   = PROXY_MAX_IO_SZ + PROXY_HDR_SZ;
+    proxy->out_iovec.iov_base = g_malloc(PROXY_MAX_IO_SZ + PROXY_HDR_SZ);
+    proxy->out_iovec.iov_len  = PROXY_MAX_IO_SZ + PROXY_HDR_SZ;
+
+    ctx->private = proxy;
+    proxy->sockfd = sock_id;
+    qemu_mutex_init(&proxy->mutex);
+
+    ctx->export_flags |= V9FS_PATHNAME_FSCONTEXT;
+    ctx->exops.get_st_gen = proxy_ioc_getversion;
+     return 0;
+ }",DoS,CVE-2016-9916,CWE-400,qemu,898ae90a44551d25b8e956fd87372d303c82fe68,0,0,0,0,1,0,0,0,0
+7766,test,"static inline __maybe_unused uint64_t h2_get_n64(const struct buffer *b, int o)
+{
+	return readv_n64(b_ptr(b, o), b_end(b) - b_ptr(b, o), b->data);
+}",Exec Code Overflow,CVE-2018-10184,CWE-119,haproxy,3f0e1ec70173593f4c2b3681b26c04a4ed5fc588,0,0,0,0,0,1,0,1,0
+7926,test,"static int emitjump(JF, int opcode)
+{
+	int inst = F->codelen + 1;
+	emit(J, F, opcode);
+	emitraw(J, F, 0);
+	return inst;
+}",DoS,CVE-2016-9294,CWE-476,ghostscript,5008105780c0b0182ea6eda83ad5598f225be3ee,0,0,0,0,1,0,0,0,0
+8403,test,"pvscsi_cleanup_msi(PVSCSIState *s)
+{
+    PCIDevice *d = PCI_DEVICE(s);
+
+    msi_uninit(d);
+}",DoS,CVE-2016-7421,CWE-399,qemu,d251157ac1928191af851d199a9ff255d330bec9,0,0,0,0,1,0,0,0,0
+8540,test,"static void ssh2_pkt_addmp(struct Packet *pkt, Bignum b)
+{
+    unsigned char *p;
+    int len;
+    p = ssh2_mpint_fmt(b, &len);
+    ssh_pkt_addstring_start(pkt);
+    ssh_pkt_addstring_data(pkt, (char *)p, len);
+    sfree(p);
+}",Overflow,CVE-2017-6542,CWE-119,tartarus,4ff22863d895cb7ebfced4cf923a012a614adaa8,0,0,0,0,0,0,0,1,0
+8983,test,"vmxnet3_dec_rx_completion_counter(VMXNET3State *s, int qidx)
+{
+    vmxnet3_ring_dec(&s->rxq_descr[qidx].comp_ring);
+}",+Info,CVE-2016-6836,CWE-200,qemu,fdda170e50b8af062cf5741e12c4fb5e57a2eacf,0,1,0,0,0,0,0,0,0
+9302,test,"static int appendenv(const char *opt, const char *new)
+{
+	char buf[1024];
+	char *old = getenv(opt);
+
+	buf[1023] = 0;
+	if (old)
+		snprintf(buf, 1023, ""%s %s"", old, new);
+	else
+		snprintf(buf, 1023, ""%s"", new);
+
+	return setenv(opt, buf, 1);
+}",DoS Overflow,CVE-2012-3291,CWE-119,infradead,14cae65318d3ef1f7d449e463b72b6934e82f1c2,0,0,0,0,1,0,0,1,0
+9480,test,"add_peers(const char *s)
+{
+	llist_t *item;
+	peer_t *p;
+
+	p = xzalloc(sizeof(*p) + strlen(s));
+	strcpy(p->p_hostname, s);
+	resolve_peer_hostname(p, /*loop_on_fail=*/ 1);
+
+	/* Names like N.<country2chars>.pool.ntp.org are randomly resolved
+	 * to a pool of machines. Sometimes different N's resolve to the same IP.
+	 * It is not useful to have two peers with same IP. We skip duplicates.
+	 */
+	for (item = G.ntp_peers; item != NULL; item = item->link) {
+		peer_t *pp = (peer_t *) item->data;
+		if (strcmp(p->p_dotted, pp->p_dotted) == 0) {
+			bb_error_msg(""duplicate peer %s (%s)"", s, p->p_dotted);
+			free(p->p_lsa);
+			free(p->p_dotted);
+			free(p);
+			return;
+		}
+	}
+
+	p->p_fd = -1;
+	p->p_xmt_msg.m_status = MODE_CLIENT | (NTP_VERSION << 3);
+	p->next_action_time = G.cur_time; /* = set_next(p, 0); */
+	reset_peer_stats(p, STEP_THRESHOLD);
+
+	llist_add_to(&G.ntp_peers, p);
+	G.peer_cnt++;
+}",DoS,CVE-2016-6301,CWE-399,busybox,150dc7a2b483b8338a3e185c478b4b23ee884e71,0,0,0,0,1,0,0,0,0
+9650,test,"static void cwd_globals_dtor(virtual_cwd_globals *cwd_g TSRMLS_DC) /* {{{ */
+{
+	CWD_STATE_FREE(&cwd_g->cwd);
+	realpath_cache_clean(TSRMLS_C);
+}
+/* }}} */",DoS Overflow,CVE-2016-6289,CWE-190,php,0218acb7e756a469099c4ccfb22bce6c2bd1ef87,0,0,0,0,1,0,0,1,0
+9743,test,"parse_register_src(
+   struct translate_ctx *ctx,
+   uint *file,
+   struct parsed_bracket *brackets)
+{
+   brackets->ind_comp = TGSI_SWIZZLE_X;
+   if (!parse_register_file_bracket( ctx, file ))
+      return FALSE;
+   if (!parse_register_bracket( ctx, brackets ))
+       return FALSE;
+
+   return TRUE;
+}",DoS Overflow,CVE-2017-5580,CWE-119,virglrenderer,28894a30a17a84529be102b21118e55d6c9f23fa,0,0,0,0,1,0,0,1,0
+10050,test,"usage( char*  execname )
+  {
+    fprintf( stderr,  ""\n"" );
+    fprintf( stderr,  ""ftstring: string viewer -- part of the FreeType project\n"" );
+    fprintf( stderr,  ""-------------------------------------------------------\n"" );
+    fprintf( stderr,  ""\n"" );
+    fprintf( stderr,  ""Usage: %s [options below] ppem fontname[.ttf|.ttc] ...\n"",
+             execname );
+    fprintf( stderr,  ""\n"" );
+    fprintf( stderr,  ""  -e enc      specify encoding tag (default: unic)\n"" );
+    fprintf( stderr,  ""  -r R        use resolution R dpi (default: 72 dpi)\n"" );
+    fprintf( stderr,  ""  -m message  message to display\n"" );
+    fprintf( stderr,  ""\n"" );
+
+    exit( 1 );
+  }",DoS Exec Code Overflow,CVE-2010-2527,CWE-119,savannah,b995299b73ba4cd259f221f500d4e63095508bec,0,0,0,0,1,1,0,1,0
+10484,test,"static bool megasas_use_msix(MegasasState *s)
+{
+    return s->flags & MEGASAS_MASK_USE_MSIX;
+}",+Info,CVE-2016-5337,CWE-200,qemu,844864fbae66935951529408831c2f22367a57b6,0,1,0,0,0,0,0,0,0
+10906,test,"ksba_ocsp_parse_response (ksba_ocsp_t ocsp,
+                          const unsigned char *msg, size_t msglen,
+                          ksba_ocsp_response_status_t *response_status)
+{
+  gpg_error_t err;
+  struct ocsp_reqitem_s *ri;
+
+  if (!ocsp || !msg || !msglen || !response_status)
+    return gpg_error (GPG_ERR_INV_VALUE);
+
+  if (!ocsp->requestlist)
+    return gpg_error (GPG_ERR_MISSING_ACTION);
+
+  /* Reset the fields used to track the response.  This is so that we
+     can use the parse function a second time for the same
+     request. This is useful in case of a TryLater response status. */
+  ocsp->response_status = KSBA_OCSP_RSPSTATUS_NONE;
+  release_ocsp_certlist (ocsp->received_certs);
+  release_ocsp_extensions (ocsp->response_extensions);
+  ocsp->received_certs = NULL;
+  ocsp->hash_length = 0;
+  ocsp->bad_nonce = 0;
+  ocsp->good_nonce = 0;
+  xfree (ocsp->responder_id.name);
+  ocsp->responder_id.name = NULL;
+  xfree (ocsp->responder_id.keyid);
+  ocsp->responder_id.keyid = NULL;
+  for (ri=ocsp->requestlist; ri; ri = ri->next)
+    {
+      ri->status = KSBA_STATUS_NONE;
+      *ri->this_update = 0;
+      *ri->next_update = 0;
+      *ri->revocation_time = 0;
+      ri->revocation_reason = 0;
+      release_ocsp_extensions (ri->single_extensions);
+    }
+
+  /* Run the actual parser.  */
+  err = parse_response (ocsp, msg, msglen);
+  *response_status = ocsp->response_status;
+
+  /* FIXME: find duplicates in the request list and set them to the
+     same status. */
+
+  if (*response_status == KSBA_OCSP_RSPSTATUS_SUCCESS)
+    if (ocsp->bad_nonce || (ocsp->noncelen && !ocsp->good_nonce))
+      *response_status = KSBA_OCSP_RSPSTATUS_REPLAYED;
+
+  return err;
+}",DoS,CVE-2016-4579,CWE-20,gnupg,a7eed17a0b2a1c09ef986f3b4b323cd31cea2b64,0,0,0,0,1,0,0,0,0
+11138,test,"PHP_METHOD(Phar, convertToExecutable)
+{
+	char *ext = NULL;
+	int is_data;
+	size_t ext_len = 0;
+	php_uint32 flags;
+	zend_object *ret;
+	/* a number that is not 0, 1 or 2 (Which is also Greg's birthday, so there) */
+	zend_long format = 9021976, method = 9021976;
+	PHAR_ARCHIVE_OBJECT();
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), ""|lls"", &format, &method, &ext, &ext_len) == FAILURE) {
+		return;
+	}
+
+	if (PHAR_G(readonly)) {
+		zend_throw_exception_ex(spl_ce_UnexpectedValueException, 0,
+			""Cannot write out executable phar archive, phar is read-only"");
+		return;
+	}
+
+	switch (format) {
+		case 9021976:
+		case PHAR_FORMAT_SAME: /* null is converted to 0 */
+			/* by default, use the existing format */
+			if (phar_obj->archive->is_tar) {
+				format = PHAR_FORMAT_TAR;
+			} else if (phar_obj->archive->is_zip) {
+				format = PHAR_FORMAT_ZIP;
+			} else {
+				format = PHAR_FORMAT_PHAR;
+			}
+			break;
+		case PHAR_FORMAT_PHAR:
+		case PHAR_FORMAT_TAR:
+		case PHAR_FORMAT_ZIP:
+			break;
+		default:
+			zend_throw_exception_ex(spl_ce_BadMethodCallException, 0,
+				""Unknown file format specified, please pass one of Phar::PHAR, Phar::TAR or Phar::ZIP"");
+			return;
+	}
+
+	switch (method) {
+		case 9021976:
+			flags = phar_obj->archive->flags & PHAR_FILE_COMPRESSION_MASK;
+			break;
+		case 0:
+			flags = PHAR_FILE_COMPRESSED_NONE;
+			break;
+		case PHAR_ENT_COMPRESSED_GZ:
+			if (format == PHAR_FORMAT_ZIP) {
+				zend_throw_exception_ex(spl_ce_BadMethodCallException, 0,
+					""Cannot compress entire archive with gzip, zip archives do not support whole-archive compression"");
+				return;
+			}
+
+			if (!PHAR_G(has_zlib)) {
+				zend_throw_exception_ex(spl_ce_BadMethodCallException, 0,
+					""Cannot compress entire archive with gzip, enable ext/zlib in php.ini"");
+				return;
+			}
+
+			flags = PHAR_FILE_COMPRESSED_GZ;
+			break;
+		case PHAR_ENT_COMPRESSED_BZ2:
+			if (format == PHAR_FORMAT_ZIP) {
+				zend_throw_exception_ex(spl_ce_BadMethodCallException, 0,
+					""Cannot compress entire archive with bz2, zip archives do not support whole-archive compression"");
+				return;
+			}
+
+			if (!PHAR_G(has_bz2)) {
+				zend_throw_exception_ex(spl_ce_BadMethodCallException, 0,
+					""Cannot compress entire archive with bz2, enable ext/bz2 in php.ini"");
+				return;
+			}
+
+			flags = PHAR_FILE_COMPRESSED_BZ2;
+			break;
+		default:
+			zend_throw_exception_ex(spl_ce_BadMethodCallException, 0,
+				""Unknown compression specified, please pass one of Phar::GZ or Phar::BZ2"");
+			return;
+	}
+
+	is_data = phar_obj->archive->is_data;
+	phar_obj->archive->is_data = 0;
+	ret = phar_convert_to_other(phar_obj->archive, format, ext, flags);
+	phar_obj->archive->is_data = is_data;
+
+	if (ret) {
+		ZVAL_OBJ(return_value, ret);
+	} else {
+		RETURN_NULL();
+	}
+}",Exec Code,CVE-2016-4072,CWE-20,php,1e9b175204e3286d64dfd6c9f09151c31b5e099a,0,0,0,0,0,1,0,0,0
+11235,test,"static void php_snmp_object_free_storage(zend_object *object) /* {{{ */
+{
+	php_snmp_object *intern = php_snmp_fetch_object(object);
+
+	if (!intern) {
+		return;
+	}
+
+	netsnmp_session_free(&(intern->session));
+
+	zend_object_std_dtor(&intern->zo);
+}
+/* }}} */",Exec Code,CVE-2016-4071,CWE-20,php,6e25966544fb1d2f3d7596e060ce9c9269bbdcf8,0,0,0,0,0,1,0,0,0
+11445,test,"fbFetch_a4r4g4b4 (const FbBits *bits, int x, int width, CARD32 *buffer, miIndexedPtr indexed)
+{
+    const CARD16 *pixel = (const CARD16 *)bits + x;
+    const CARD16 *end = pixel + width;
+    while (pixel < end) {
+        CARD32  p = READ(pixel++);
+        CARD32  r,g,b, a;
+
+        a = ((p & 0xf000) | ((p & 0xf000) >> 4)) << 16;
+        r = ((p & 0x0f00) | ((p & 0x0f00) >> 4)) << 12;
+        g = ((p & 0x00f0) | ((p & 0x00f0) >> 4)) << 8;
+        b = ((p & 0x000f) | ((p & 0x000f) << 4));
+        WRITE(buffer++, (a | r | g | b));
+    }
+}",DoS Exec Code Mem. Corr.,CVE-2010-1166,CWE-189,xserver,d2f813f7db157fc83abc4b3726821c36ee7e40b1,0,0,0,0,1,1,1,0,0
+13531,test,"static void  Free_ContextPos2( HB_ContextPosFormat2*  cpf2 )
+{
+  HB_UShort         n, count;
+
+  HB_PosClassSet*  pcs;
+
+
+  if ( cpf2->PosClassSet )
+  {
+    count = cpf2->PosClassSetCount;
+    pcs   = cpf2->PosClassSet;
+
+    for ( n = 0; n < count; n++ )
+      Free_PosClassSet( &pcs[n] );
+
+    FREE( pcs );
+  }
+
+  _HB_OPEN_Free_ClassDefinition( &cpf2->ClassDef );
+  _HB_OPEN_Free_Coverage( &cpf2->Coverage );
+}",DoS Exec Code Overflow,CVE-2011-3193,CWE-119,harfbuzz,81c8ef785b079980ad5b46be4fe7c7bf156dbf65,0,0,0,0,1,1,0,1,0
+14083,test,"ProcRenderTrapezoids (ClientPtr client)
+{
+    int		rc, ntraps;
+    PicturePtr	pSrc, pDst;
+    PictFormatPtr   pFormat;
+    REQUEST(xRenderTrapezoidsReq);
+
+    REQUEST_AT_LEAST_SIZE(xRenderTrapezoidsReq);
+    if (!PictOpValid (stuff->op))
+    {
+	client->errorValue = stuff->op;
+	return BadValue;
+    }
+    VERIFY_PICTURE (pSrc, stuff->src, client, DixReadAccess);
+    VERIFY_PICTURE (pDst, stuff->dst, client, DixWriteAccess);
+    if (!pDst->pDrawable)
+        return BadDrawable;
+    if (pSrc->pDrawable && pSrc->pDrawable->pScreen != pDst->pDrawable->pScreen)
+	return BadMatch;
+    if (stuff->maskFormat)
+    {
+	rc = dixLookupResourceByType((pointer *)&pFormat, stuff->maskFormat,
+				     PictFormatType, client, DixReadAccess);
+	if (rc != Success)
+	    return rc;
+    }
+    else
+	pFormat = 0;
+    ntraps = (client->req_len << 2) - sizeof (xRenderTrapezoidsReq);
+    if (ntraps % sizeof (xTrapezoid))
+	return BadLength;
+    ntraps /= sizeof (xTrapezoid);
+    if (ntraps)
+	CompositeTrapezoids (stuff->op, pSrc, pDst, pFormat,
+			     stuff->xSrc, stuff->ySrc,
+			     ntraps, (xTrapezoid *) &stuff[1]);
+    return Success;
+}",DoS,CVE-2010-4819,CWE-20,xserver,5725849a1b427cd4a72b84e57f211edb35838718,0,0,0,0,1,0,0,0,0
+14337,test,"static void ehci_advance_state(EHCIState *ehci, int async)
+{
+    EHCIQueue *q = NULL;
+    int again;
+
+    do {
+        switch(ehci_get_state(ehci, async)) {
+        case EST_WAITLISTHEAD:
+            again = ehci_state_waitlisthead(ehci, async);
+            break;
+
+        case EST_FETCHENTRY:
+            again = ehci_state_fetchentry(ehci, async);
+            break;
+
+        case EST_FETCHQH:
+            q = ehci_state_fetchqh(ehci, async);
+            if (q != NULL) {
+                assert(q->async == async);
+                again = 1;
+            } else {
+                again = 0;
+            }
+            break;
+
+        case EST_FETCHITD:
+            again = ehci_state_fetchitd(ehci, async);
+            break;
+
+        case EST_FETCHSITD:
+            again = ehci_state_fetchsitd(ehci, async);
+            break;
+
+        case EST_ADVANCEQUEUE:
+            assert(q != NULL);
+            again = ehci_state_advqueue(q);
+            break;
+
+        case EST_FETCHQTD:
+            assert(q != NULL);
+            again = ehci_state_fetchqtd(q);
+            break;
+
+        case EST_HORIZONTALQH:
+            assert(q != NULL);
+            again = ehci_state_horizqh(q);
+            break;
+
+        case EST_EXECUTE:
+            assert(q != NULL);
+            again = ehci_state_execute(q);
+            if (async) {
+                ehci->async_stepdown = 0;
+            }
+            break;
+
+        case EST_EXECUTING:
+            assert(q != NULL);
+            if (async) {
+                ehci->async_stepdown = 0;
+            }
+            again = ehci_state_executing(q);
+            break;
+
+        case EST_WRITEBACK:
+            assert(q != NULL);
+            again = ehci_state_writeback(q);
+            if (!async) {
+                ehci->periodic_sched_active = PERIODIC_ACTIVE;
+            }
+            break;
+
+        default:
+            fprintf(stderr, ""Bad state!\n"");
+            again = -1;
+            g_assert_not_reached();
+            break;
+        }
+
+        if (again < 0) {
+            fprintf(stderr, ""processing error - resetting ehci HC\n"");
+            ehci_reset(ehci);
+            again = 0;
+        }
+    }
+    while (again);
+}",DoS,CVE-2015-8558,CWE-20,qemu,156a2e4dbffa85997636a7a39ef12da6f1b40254,0,0,0,0,1,0,0,0,0
+14779,test,"static int _rollback_transactions(zend_rsrc_list_entry *rsrc TSRMLS_DC)
+{
+	PGconn *link;
+	PGresult *res;
+	int orig;
+
+	if (Z_TYPE_P(rsrc) != le_plink) 
+		return 0;
+
+	link = (PGconn *) rsrc->ptr;
+
+	if (PQ_SETNONBLOCKING(link, 0)) {
+		php_error_docref(""ref.pgsql"" TSRMLS_CC, E_NOTICE, ""Cannot set connection to blocking mode"");
+		return -1;
+	}
+	
+	while ((res = PQgetResult(link))) {
+		PQclear(res);
+	}
+#if HAVE_PGTRANSACTIONSTATUS && HAVE_PQPROTOCOLVERSION
+	if ((PQprotocolVersion(link) >= 3 && PQtransactionStatus(link) != PQTRANS_IDLE) || PQprotocolVersion(link) < 3)
+#endif
+	{
+		orig = PGG(ignore_notices);
+		PGG(ignore_notices) = 1;
+#if HAVE_PGTRANSACTIONSTATUS && HAVE_PQPROTOCOLVERSION
+		res = PQexec(link,""ROLLBACK;"");
+#else
+		res = PQexec(link,""BEGIN;"");
+		PQclear(res);
+		res = PQexec(link,""ROLLBACK;"");
+#endif
+		PQclear(res);
+		PGG(ignore_notices) = orig;
+	}
+
+	return 0;
+}",DoS,CVE-2015-4644,,php,2cc4e69cc6d8dbc4b3568ad3dd583324a7c11d64,0,0,0,0,1,0,0,0,0
+15071,test,"int dom_document_recover_read(dom_object *obj, zval **retval TSRMLS_DC)
+{
+	dom_doc_propsptr doc_prop;
+
+	ALLOC_ZVAL(*retval);
+	if (obj->document) {
+		doc_prop = dom_get_doc_props(obj->document);
+		ZVAL_BOOL(*retval, doc_prop->recover);
+	} else {
+		ZVAL_FALSE(*retval);
+	}
+	return SUCCESS;
+}",Bypass,CVE-2015-3412,CWE-254,php,4435b9142ff9813845d5c97ab29a5d637bedb257,0,0,0,1,0,0,0,0,0
+15122,test,"PHP_FUNCTION(imagegif)
+{
+	_php_image_output_ctx(INTERNAL_FUNCTION_PARAM_PASSTHRU, PHP_GDIMG_TYPE_GIF, ""GIF"", gdImageGifCtx);
+}",Bypass,CVE-2015-3412,CWE-254,php,4435b9142ff9813845d5c97ab29a5d637bedb257,0,0,0,1,0,0,0,0,0
+15164,test,"PHP_FUNCTION(imageftbbox)
+{
+	php_imagettftext_common(INTERNAL_FUNCTION_PARAM_PASSTHRU, TTFTEXT_BBOX, 1);
+}",Bypass,CVE-2015-3412,CWE-254,php,4435b9142ff9813845d5c97ab29a5d637bedb257,0,0,0,1,0,0,0,0,0
+15665,test,"static void ssi_sd_class_init(ObjectClass *klass, void *data)
+{
+    SSISlaveClass *k = SSI_SLAVE_CLASS(klass);
+
+    k->init = ssi_sd_init;
+    k->transfer = ssi_sd_transfer;
+    k->cs_polarity = SSI_CS_LOW;
+}",Exec Code,CVE-2013-4537,CWE-94,qemu,a9c380db3b8c6af19546a68145c8d1438a09c92b,0,0,0,0,0,1,0,0,0
+15718,test,"static void put_bool(QEMUFile *f, void *pv, size_t size)
+{
+    bool *v = pv;
+    qemu_put_byte(f, *v);
+}",DoS Exec Code Overflow,CVE-2013-4531,CWE-119,qemu,d2ef4b61fe6d33d2a5dcf100a9b9440de341ad62,0,0,0,0,1,1,0,1,0
+16260,test,"int Condor_Auth_SSL :: server_send_message( int server_status, char *buf, BIO * /* conn_in */, BIO *conn_out )
+{
+    int len;
+    buf[0] = 0; // just in case we don't read anything
+    len = BIO_read( conn_out, buf, AUTH_SSL_BUF_SIZE );
+    if (len < 0) {
+        len = 0;
+    }
+    if( send_message( server_status, buf, len ) == AUTH_SSL_ERROR ) {
+        return AUTH_SSL_ERROR;
+    }
+    return AUTH_SSL_A_OK;
+}",DoS Exec Code,CVE-2011-4930,CWE-134,htcondor,5e5571d1a431eb3c61977b6dd6ec90186ef79867,0,0,0,0,1,1,0,0,0
+16708,test,"pdf_load_linear(fz_context *ctx, pdf_document *doc)
+{
+	pdf_obj *dict = NULL;
+	pdf_obj *hint = NULL;
+	pdf_obj *o;
+	int num, gen, lin, len;
+	int64_t stmofs;
+
+	fz_var(dict);
+	fz_var(hint);
+
+	fz_try(ctx)
+	{
+		pdf_xref_entry *entry;
+
+		dict = pdf_parse_ind_obj(ctx, doc, doc->file, &doc->lexbuf.base, &num, &gen, &stmofs, NULL);
+		if (!pdf_is_dict(ctx, dict))
+			fz_throw(ctx, FZ_ERROR_GENERIC, ""Failed to read linearized dictionary"");
+		o = pdf_dict_get(ctx, dict, PDF_NAME_Linearized);
+		if (o == NULL)
+			fz_throw(ctx, FZ_ERROR_GENERIC, ""Failed to read linearized dictionary"");
+		lin = pdf_to_int(ctx, o);
+		if (lin != 1)
+			fz_throw(ctx, FZ_ERROR_GENERIC, ""Unexpected version of Linearized tag (%d)"", lin);
+		len = pdf_to_int(ctx, pdf_dict_get(ctx, dict, PDF_NAME_L));
+		if (len != doc->file_length)
+			fz_throw(ctx, FZ_ERROR_GENERIC, ""File has been updated since linearization"");
+
+		pdf_read_xref_sections(ctx, doc, fz_tell(ctx, doc->file), &doc->lexbuf.base, 0);
+
+		doc->linear_page_count = pdf_to_int(ctx, pdf_dict_get(ctx, dict, PDF_NAME_N));
+		doc->linear_page_refs = fz_resize_array(ctx, doc->linear_page_refs, doc->linear_page_count, sizeof(pdf_obj *));
+		memset(doc->linear_page_refs, 0, doc->linear_page_count * sizeof(pdf_obj*));
+		doc->linear_obj = dict;
+		doc->linear_pos = fz_tell(ctx, doc->file);
+		doc->linear_page1_obj_num = pdf_to_int(ctx, pdf_dict_get(ctx, dict, PDF_NAME_O));
+		doc->linear_page_refs[0] = pdf_new_indirect(ctx, doc, doc->linear_page1_obj_num, 0);
+		doc->linear_page_num = 0;
+		hint = pdf_dict_get(ctx, dict, PDF_NAME_H);
+		doc->hint_object_offset = pdf_to_int(ctx, pdf_array_get(ctx, hint, 0));
+		doc->hint_object_length = pdf_to_int(ctx, pdf_array_get(ctx, hint, 1));
+
+		entry = pdf_get_populating_xref_entry(ctx, doc, 0);
+		entry->type = 'f';
+	}
+	fz_catch(ctx)
+	{
+		pdf_drop_obj(ctx, dict);
+		fz_rethrow_if(ctx, FZ_ERROR_TRYLATER);
+		/* Drop back to non linearized reading mode */
+		doc->file_reading_linearly = 0;
+	}
+}",Exec Code Overflow,CVE-2017-17858,CWE-119,ghostscript,55c3f68d638ac1263a386e0aaa004bb6e8bde731,0,0,0,0,0,1,0,1,0
+16770,test,"static int qcow2_downgrade(BlockDriverState *bs, int target_version)
+{
+    BDRVQcowState *s = bs->opaque;
+    int current_version = s->qcow_version;
+    int ret;
+
+    if (target_version == current_version) {
+        return 0;
+    } else if (target_version > current_version) {
+        return -EINVAL;
+    } else if (target_version != 2) {
+        return -EINVAL;
+    }
+
+    if (s->refcount_order != 4) {
+        /* we would have to convert the image to a refcount_order == 4 image
+         * here; however, since qemu (at the time of writing this) does not
+         * support anything different than 4 anyway, there is no point in doing
+         * so right now; however, we should error out (if qemu supports this in
+         * the future and this code has not been adapted) */
+        error_report(""qcow2_downgrade: Image refcount orders other than 4 are ""
+                     ""currently not supported."");
+        return -ENOTSUP;
+    }
+
+    /* clear incompatible features */
+    if (s->incompatible_features & QCOW2_INCOMPAT_DIRTY) {
+        ret = qcow2_mark_clean(bs);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    /* with QCOW2_INCOMPAT_CORRUPT, it is pretty much impossible to get here in
+     * the first place; if that happens nonetheless, returning -ENOTSUP is the
+     * best thing to do anyway */
+
+    if (s->incompatible_features) {
+        return -ENOTSUP;
+    }
+
+    /* since we can ignore compatible features, we can set them to 0 as well */
+    s->compatible_features = 0;
+    /* if lazy refcounts have been used, they have already been fixed through
+     * clearing the dirty flag */
+
+    /* clearing autoclear features is trivial */
+    s->autoclear_features = 0;
+
+    ret = qcow2_expand_zero_clusters(bs);
+    if (ret < 0) {
+        return ret;
+    }
+
+    s->qcow_version = target_version;
+    ret = qcow2_update_header(bs);
+    if (ret < 0) {
+        s->qcow_version = current_version;
+        return ret;
+    }
+    return 0;
+}",DoS,CVE-2014-0146,CWE-476,qemu,11b128f4062dd7f89b14abc8877ff20d41b28be9,0,0,0,0,1,0,0,0,0
+16834,test,"static int validate_table_offset(BlockDriverState *bs, uint64_t offset,
+                                 uint64_t entries, size_t entry_len)
+{
+    BDRVQcowState *s = bs->opaque;
+    uint64_t size;
+
+    /* Use signed INT64_MAX as the maximum even for uint64_t header fields,
+     * because values will be passed to qemu functions taking int64_t. */
+    if (entries > INT64_MAX / entry_len) {
+        return -EINVAL;
+    }
+
+    size = entries * entry_len;
+
+    if (INT64_MAX - size < offset) {
+        return -EINVAL;
+    }
+
+    /* Tables must be cluster aligned */
+    if (offset & (s->cluster_size - 1)) {
+        return -EINVAL;
+    }
+
+    return 0;
+}",DoS Overflow Mem. Corr.,CVE-2014-0143,CWE-190,qemu,6a83f8b5bec6f59e56cc49bd49e4c3f8f805d56f,0,0,0,0,1,0,1,1,0
+17680,test,"ProcXFixesCreateRegionFromBitmap(ClientPtr client)
+{
+    RegionPtr pRegion;
+    PixmapPtr pPixmap;
+    int rc;
+
+    REQUEST(xXFixesCreateRegionFromBitmapReq);
+
+    REQUEST_SIZE_MATCH(xXFixesCreateRegionFromBitmapReq);
+    LEGAL_NEW_RESOURCE(stuff->region, client);
+
+    rc = dixLookupResourceByType((void **) &pPixmap, stuff->bitmap, RT_PIXMAP,
+                                 client, DixReadAccess);
+    if (rc != Success) {
+        client->errorValue = stuff->bitmap;
+        return rc;
+    }
+    if (pPixmap->drawable.depth != 1)
+        return BadMatch;
+
+    pRegion = BitmapToRegion(pPixmap->drawable.pScreen, pPixmap);
+
+    if (!pRegion)
+        return BadAlloc;
+
+    if (!AddResource(stuff->region, RegionResType, (void *) pRegion))
+        return BadAlloc;
+
+    return Success;
+}",Exec Code,CVE-2017-12183,CWE-20,xserver,55caa8b08c84af2b50fbc936cf334a5a93dd7db5,0,0,0,0,0,1,0,0,0
+18152,test,"kick_delayed_jobs(tube t, unsigned int n)
+{
+    unsigned int i;
+    for (i = 0; (i < n) && kick_delayed_job(t); ++i);
+    return i;
+}",Exec Code,CVE-2010-2060,,beanstalkd,2e8e8c6387ecdf5923dfc4d7718d18eba1b0873d,0,0,0,0,0,1,0,0,0
+18236,test,"static void complete_update_bin(conn *c) {
+    protocol_binary_response_status eno = PROTOCOL_BINARY_RESPONSE_EINVAL;
+    enum store_item_type ret = NOT_STORED;
+    assert(c != NULL);
+
+    item *it = c->item;
+
+    pthread_mutex_lock(&c->thread->stats.mutex);
+    c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
+    pthread_mutex_unlock(&c->thread->stats.mutex);
+
+    /* We don't actually receive the trailing two characters in the bin
+     * protocol, so we're going to just set them here */
+    *(ITEM_data(it) + it->nbytes - 2) = '\r';
+    *(ITEM_data(it) + it->nbytes - 1) = '\n';
+
+    ret = store_item(it, c->cmd, c);
+
+#ifdef ENABLE_DTRACE
+    uint64_t cas = ITEM_get_cas(it);
+    switch (c->cmd) {
+    case NREAD_ADD:
+        MEMCACHED_COMMAND_ADD(c->sfd, ITEM_key(it), it->nkey,
+                              (ret == STORED) ? it->nbytes : -1, cas);
+        break;
+    case NREAD_REPLACE:
+        MEMCACHED_COMMAND_REPLACE(c->sfd, ITEM_key(it), it->nkey,
+                                  (ret == STORED) ? it->nbytes : -1, cas);
+        break;
+    case NREAD_APPEND:
+        MEMCACHED_COMMAND_APPEND(c->sfd, ITEM_key(it), it->nkey,
+                                 (ret == STORED) ? it->nbytes : -1, cas);
+        break;
+    case NREAD_PREPEND:
+        MEMCACHED_COMMAND_PREPEND(c->sfd, ITEM_key(it), it->nkey,
+                                 (ret == STORED) ? it->nbytes : -1, cas);
+        break;
+    case NREAD_SET:
+        MEMCACHED_COMMAND_SET(c->sfd, ITEM_key(it), it->nkey,
+                              (ret == STORED) ? it->nbytes : -1, cas);
+        break;
+    }
+#endif
+
+    switch (ret) {
+    case STORED:
+        /* Stored */
+        write_bin_response(c, NULL, 0, 0, 0);
+        break;
+    case EXISTS:
+        write_bin_error(c, PROTOCOL_BINARY_RESPONSE_KEY_EEXISTS, 0);
+        break;
+    case NOT_FOUND:
+        write_bin_error(c, PROTOCOL_BINARY_RESPONSE_KEY_ENOENT, 0);
+        break;
+    case NOT_STORED:
+        if (c->cmd == NREAD_ADD) {
+            eno = PROTOCOL_BINARY_RESPONSE_KEY_EEXISTS;
+        } else if(c->cmd == NREAD_REPLACE) {
+            eno = PROTOCOL_BINARY_RESPONSE_KEY_ENOENT;
+        } else {
+            eno = PROTOCOL_BINARY_RESPONSE_NOT_STORED;
+        }
+        write_bin_error(c, eno, 0);
+    }
+
+    item_remove(c->item);       /* release the c->item reference */
+    c->item = 0;
+}",DoS,CVE-2010-1152,CWE-20,memcached,d9cd01ede97f4145af9781d448c62a3318952719,0,0,0,0,1,0,0,0,0
+18244,test,"static void conn_set_state(conn *c, enum conn_states state) {
+    assert(c != NULL);
+    assert(state >= conn_listening && state < conn_max_state);
+
+    if (state != c->state) {
+        if (settings.verbose > 2) {
+            fprintf(stderr, ""%d: going from %s to %s\n"",
+                    c->sfd, state_text(c->state),
+                    state_text(state));
+        }
+
+        c->state = state;
+
+        if (state == conn_write || state == conn_mwrite) {
+            MEMCACHED_PROCESS_COMMAND_END(c->sfd, c->wbuf, c->wbytes);
+        }
+    }
+}",DoS,CVE-2010-1152,CWE-20,memcached,d9cd01ede97f4145af9781d448c62a3318952719,0,0,0,0,1,0,0,0,0
+18897,test,"int __ip_local_out(struct sk_buff *skb)
+{
+	struct iphdr *iph = ip_hdr(skb);
+
+	iph->tot_len = htons(skb->len);
+	ip_send_check(iph);
+	return nf_hook(NFPROTO_IPV4, NF_INET_LOCAL_OUT, skb, NULL,
+		       skb_dst(skb)->dev, dst_output);
+}",DoS,CVE-2012-3552,CWE-362,linux,f6d8bd051c391c1c0458a30b2a7abcd939329259,0,0,0,0,1,0,0,0,0
+18902,test,"static void ip_copy_metadata(struct sk_buff *to, struct sk_buff *from)
+{
+	to->pkt_type = from->pkt_type;
+	to->priority = from->priority;
+	to->protocol = from->protocol;
+	skb_dst_drop(to);
+	skb_dst_copy(to, from);
+	to->dev = from->dev;
+	to->mark = from->mark;
+
+	/* Copy the flags to each fragment. */
+	IPCB(to)->flags = IPCB(from)->flags;
+
+#ifdef CONFIG_NET_SCHED
+	to->tc_index = from->tc_index;
+#endif
+	nf_copy(to, from);
+#if defined(CONFIG_NETFILTER_XT_TARGET_TRACE) || \
+    defined(CONFIG_NETFILTER_XT_TARGET_TRACE_MODULE)
+	to->nf_trace = from->nf_trace;
+#endif
+#if defined(CONFIG_IP_VS) || defined(CONFIG_IP_VS_MODULE)
+	to->ipvs_property = from->ipvs_property;
+#endif
+	skb_copy_secmark(to, from);
+}",DoS,CVE-2012-3552,CWE-362,linux,f6d8bd051c391c1c0458a30b2a7abcd939329259,0,0,0,0,1,0,0,0,0
+19021,test,"int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
+{
+	struct sock *rsk;
+#ifdef CONFIG_TCP_MD5SIG
+	/*
+	 * We really want to reject the packet as early as possible
+	 * if:
+	 *  o We're expecting an MD5'd packet and this is no MD5 tcp option
+	 *  o There is an MD5 option and we're not expecting one
+	 */
+	if (tcp_v4_inbound_md5_hash(sk, skb))
+		goto discard;
+#endif
+
+	if (sk->sk_state == TCP_ESTABLISHED) { /* Fast path */
+		sock_rps_save_rxhash(sk, skb->rxhash);
+		if (tcp_rcv_established(sk, skb, tcp_hdr(skb), skb->len)) {
+			rsk = sk;
+			goto reset;
+		}
+		return 0;
+	}
+
+	if (skb->len < tcp_hdrlen(skb) || tcp_checksum_complete(skb))
+		goto csum_err;
+
+	if (sk->sk_state == TCP_LISTEN) {
+		struct sock *nsk = tcp_v4_hnd_req(sk, skb);
+		if (!nsk)
+			goto discard;
+
+		if (nsk != sk) {
+			if (tcp_child_process(sk, nsk, skb)) {
+				rsk = nsk;
+				goto reset;
+			}
+			return 0;
+		}
+	} else
+		sock_rps_save_rxhash(sk, skb->rxhash);
+
+	if (tcp_rcv_state_process(sk, skb, tcp_hdr(skb), skb->len)) {
+		rsk = sk;
+		goto reset;
+	}
+	return 0;
+
+reset:
+	tcp_v4_send_reset(rsk, skb);
+discard:
+	kfree_skb(skb);
+	/* Be careful here. If this function gets more complicated and
+	 * gcc suffers from register pressure on the x86, sk (in %ebx)
+	 * might be destroyed here. This current version compiles correctly,
+	 * but you have been warned.
+	 */
+	return 0;
+
+csum_err:
+	TCP_INC_STATS_BH(sock_net(sk), TCP_MIB_INERRS);
+	goto discard;
+}",DoS,CVE-2012-3552,CWE-362,linux,f6d8bd051c391c1c0458a30b2a7abcd939329259,0,0,0,0,1,0,0,0,0
+19163,test,"static void __net_exit tcpv6_net_exit_batch(struct list_head *net_exit_list)
+{
+	inet_twsk_purge(&tcp_hashinfo, &tcp_death_row, AF_INET6);
+}",DoS,CVE-2012-3552,CWE-362,linux,f6d8bd051c391c1c0458a30b2a7abcd939329259,0,0,0,0,1,0,0,0,0
