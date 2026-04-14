@@ -105,16 +105,16 @@ def attach_notebook_elements(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _compute_freq(df: pd.DataFrame, label: str, universe: set[str], field: str) -> dict[str, float]:
-    items = df.loc[df[label] == 1]
+    items = df.loc[df[label] == 1, field]
+    counts: dict[str, int] = {}
+    for tokens in items:
+        for token in tokens:
+            counts[token] = counts.get(token, 0) + 1
+
+    denom = max(len(universe), 1)
     freq = {}
     for token in universe:
-        freq[token] = 0
-        for tokens in items[field]:
-            if token in tokens:
-                freq[token] += 1
-    denom = max(len(freq), 1)
-    for token in universe:
-        freq[token] = 100 * freq[token] / denom
+        freq[token] = 100 * counts.get(token, 0) / denom
     return freq
 
 

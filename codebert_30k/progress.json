@@ -1,0 +1,7 @@
+{
+  "best_threshold": 0.3,
+  "macro_f1": 0.6259477532148376,
+  "micro_f1": 0.7467654986522911,
+  "stage": "completed",
+  "timestamp": "2026-04-13T11:29:07"
+}
